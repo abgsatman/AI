@@ -1,16 +1,19 @@
 # Open-AI
-Chat GPT practices
-- #### PHP API builder for ChatGPT/Open AI apis
-- #### Python API builder for ChatGPT/Open AI apis
-- #### JavaScript call for ChatGPT/Open AI apis
+ChatGPT/Open AI api builder for some of any programming languages
 
-## Run
-#### PHP
-- php /php/index.php
-#### Python
-- python3 /python/main.py
-#### JavaScript
-- run in any browser /javascript/index.html
+## **Chat GPT practices**
+- PHP API builder for ChatGPT/Open AI apis
+- Python API builder for ChatGPT/Open AI apis
+- JavaScript call for ChatGPT/Open AI apis
+
+## Run Guideline
+#### **PHP** 
+<code>php /php/index.php</code>
+#### **Python** 
+<code>python3 /python/main.py</code>
+#### **JavaScript** 
+<code>/javascript/index.html</code>
+<br><sub>run in any browser</sub>
 
 ##
 <div>
