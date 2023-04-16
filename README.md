@@ -13,6 +13,8 @@ Chat GPT practices
 - run in any browser /javascript/index.html
 
 ##
-<code><img width="10%" src="https://www.vectorlogo.zone/logos/php/php-ar21.svg"></code>
-<code><img width="10%" src="https://www.vectorlogo.zone/logos/python/python-ar21.svg"></code>
-<code><img width="10%" src="https://www.vectorlogo.zone/logos/javascript/javascript-ar21.svg"></code>
+<div>
+<img src="https://github.com/devicons/devicon/blob/master/icons/php/php-plain.svg" widht="45" height="45">
+<img src="https://github.com/devicons/devicon/blob/master/icons/python/python-original.svg" widht="45" height="45">
+<img src="https://github.com/devicons/devicon/blob/master/icons/javascript/javascript-original.svg" widht="40" height="40">
+</div>
