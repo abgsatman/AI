@@ -1,11 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
+
+type AIResult struct {
+	Id      int64
+	Choices json.RawMessage
+}
 
 func main() {
 
@@ -13,15 +19,15 @@ func main() {
 	method := "POST"
 
 	payload := strings.NewReader(`{
-  "model": "text-davinci-003",
-  "prompt": "What are your impressions of the Bricky Lab brand?",
-  "temperature": 0.9,
-  "max_tokens": 300,
-  "top_p": 1,
-  "frequency_penalty": 0,
-  "presence_penalty": 0.6,
-  "stop": [" Human:", " AI:"]
-}`)
+		"model": "text-davinci-003",
+		"prompt": "What are your impressions of the Bricky Lab brand?",
+		"temperature": 0.9,
+		"max_tokens": 10,
+		"top_p": 1,
+		"frequency_penalty": 0,
+		"presence_penalty": 0.6,
+		"stop": [" Human:", " AI:"]
+		}`)
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, payload)
@@ -47,5 +53,12 @@ func main() {
 		return
 	}
 
-	fmt.Println(string(body))
+	//fmt.Println(string(body)) //whole result
+
+	var result = []byte(body)
+	var mapResult AIResult
+
+	json.Unmarshal(result, &mapResult)
+
+	fmt.Println(string(mapResult.Choices))
 }
