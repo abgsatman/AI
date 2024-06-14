@@ -1,4 +1,4 @@
-# Open-AI
+# AI
 ChatGPT/Open AI api builder for some of any programming languages
 
 ## **Chat GPT practices**
