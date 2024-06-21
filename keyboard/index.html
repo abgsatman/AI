@@ -9,12 +9,28 @@
             font-family: 'Arial', sans-serif;
             background-color: #f0f0f0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
             justify-content: center;
+            align-items: flex-start;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+        }
+        #leftPane, #rightPane {
+            flex: 1;
+            padding: 20px;
+        }
+        #leftPane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 300px;
+        }
+        #rightPane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 600px;
         }
         h1, h2 {
             color: #333;
@@ -23,36 +39,48 @@
             list-style-type: none;
             padding: 0;
             margin: 10px 0;
-        }
-        #userList li, #activityList li {
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
             background-color: #fff;
-            padding: 10px;
-            margin: 5px 0;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+        #userList li, #activityList li {
+            padding: 10px;
+            margin: 5px;
+            border-bottom: 1px solid #ccc;
+        }
         #timer {
-            font-size: 48px;
+            font-size: 72px;
             text-align: center;
-            margin-top: 20px;
+            margin: 20px 0;
             color: #333;
         }
         #textToType {
-            display: none;
             margin: 20px 0;
             padding: 15px;
             background-color: #fff;
             border: 1px solid #ccc;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            width: 100%;
             max-width: 600px;
-            text-align: center;
+            min-height: 60px;
+            display: none;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
         }
         #typingArea {
-            display: none;
             margin: 20px 0;
             width: 100%;
             max-width: 600px;
+            display: none;
         }
         textarea {
             width: 100%;
@@ -113,7 +141,7 @@
         }
 
         window.onload = function () {
-            socket = new WebSocket('ws://localhost:8080');
+            socket = new WebSocket('ws://' + window.location.host);
 
             socket.onopen = function () {
                 console.log('Bağlantı kuruldu.');
@@ -173,16 +201,33 @@
         function startRace(text) {
             requiredText = text;
             document.getElementById('timer').style.display = 'none';
-            document.getElementById('textToType').textContent = requiredText;
+            document.getElementById('textToType').innerHTML = getFormattedText(requiredText, '');
             document.getElementById('textToType').style.display = 'block';
             document.getElementById('typingArea').style.display = 'block';
         }
 
         function checkText() {
             const typedText = document.getElementById('typedText').value;
+            document.getElementById('textToType').innerHTML = getFormattedText(requiredText, typedText);
             if (typedText === requiredText) {
                 socket.send(JSON.stringify({ type: 'finished', username: username }));
             }
+        }
+
+        function getFormattedText(reference, input) {
+            let formattedText = '';
+            for (let i = 0; i < reference.length; i++) {
+                if (i < input.length) {
+                    if (reference[i] === input[i]) {
+                        formattedText += `<span class="correct">${reference[i]}</span>`;
+                    } else {
+                        formattedText += `<span class="incorrect">${reference[i]}</span>`;
+                    }
+                } else {
+                    formattedText += `<span>${reference[i]}</span>`;
+                }
+            }
+            return formattedText;
         }
 
         function showResult(winner) {
@@ -215,21 +260,25 @@
     </script>
 </head>
 <body>
-    <h1>Yarışma</h1>
-    <h2>Bağlı Kullanıcılar</h2>
-    <ul id="userList"></ul>
+    <div id="leftPane">
+        <h2>Bağlı Kullanıcılar</h2>
+        <ul id="userList"></ul>
 
-    <h2>Hareket Listesi</h2>
-    <ul id="activityList"></ul>
-
-    <button id="readyButton" onclick="ready()">Hazırım</button>
-    <div id="timer"></div>
-
-    <div id="textToType"></div>
-    <div id="typingArea">
-        <textarea id="typedText" rows="5" cols="50" oninput="checkText()"></textarea>
+        <h2>Hareket Listesi</h2>
+        <ul id="activityList"></ul>
     </div>
-    <div id="result"></div>
-    <button id="newGameButton" onclick="newGame()">Yeni Oyun</button>
+
+    <div id="rightPane">
+        <h1>Yarışma</h1>
+        <button id="readyButton" onclick="ready()">Hazırım</button>
+        <div id="timer"></div>
+
+        <div id="textToType"></div>
+        <div id="typingArea">
+            <textarea id="typedText" rows="5" cols="50" oninput="checkText()"></textarea>
+        </div>
+        <div id="result"></div>
+        <button id="newGameButton" onclick="newGame()">Yeni Oyun</button>
+    </div>
 </body>
 </html>
