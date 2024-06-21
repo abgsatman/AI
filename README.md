@@ -34,7 +34,8 @@ python predict.py</code>
 
 ## Run Guideline
 #### **Keyboard** 
-<code>node server.js
+<code>npm install ws
+node server.js
 run index.html</code>
 ##
 
