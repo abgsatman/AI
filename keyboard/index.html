@@ -69,6 +69,7 @@
             max-width: 600px;
             min-height: 60px;
             display: none;
+            user-select: none; /* Metin seçimini devre dışı bırak */
         }
         .correct {
             color: green;
@@ -128,6 +129,30 @@
             display: none;
             margin-top: 20px;
         }
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            height: 20px; /* Yüksekliği ayarladık */
+            display: flex;
+            align-items: center;
+            margin-top: 5px;
+            border-bottom: 1px solid #ccc; /* Altına çizgi ekledik */
+            padding-bottom: 5px; /* Çizgi ile içerik arasında boşluk */
+        }
+        .progress-bar {
+            height: 100%; /* Yüksekliği container'a göre ayarladık */
+            background-color: #007BFF;
+            border-radius: 10px;
+            text-align: center;
+            color: black; /* Font rengini siyah yaptık */
+            font-size: 12px; /* Yazı boyutunu ayarladık */
+            width: 0; /* Başlangıç genişliği 0 */
+            transition: width 0.5s; /* Genişlik değişiminde geçiş efekti */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
     <script>
         let socket;
@@ -151,22 +176,15 @@
             socket.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 if (data.type === 'updateUsers') {
-                    const userList = document.getElementById('userList');
-                    userList.innerHTML = '';
-                    data.users.forEach(user => {
-                        const li = document.createElement('li');
-                        li.textContent = user;
-                        userList.appendChild(li);
-                    });
+                    updateUserList(data.users);
                 } else if (data.type === 'activity') {
-                    const activityList = document.getElementById('activityList');
-                    const li = document.createElement('li');
-                    li.textContent = data.message;
-                    activityList.appendChild(li);
+                    addActivity(data.message);
                 } else if (data.type === 'startCountdown') {
                     startCountdown();
                 } else if (data.type === 'raceStart') {
                     startRace(data.text);
+                } else if (data.type === 'progress') {
+                    updateProgress(data.users);
                 } else if (data.type === 'winner') {
                     showResult(data.username);
                 } else if (data.type === 'newGame') {
@@ -177,6 +195,36 @@
             socket.onclose = function () {
                 console.log('Bağlantı kapandı.');
             };
+
+            // Ctrl tuşlarını ve F12'yi engelle
+            document.addEventListener('keydown', function(event) {
+                if (event.ctrlKey || event.key === "F12") {
+                    event.preventDefault();
+                }
+            });
+
+            // Sağ tıklama menüsünü devre dışı bırak
+            document.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+            });
+        }
+
+        function updateUserList(users) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            users.forEach(username => {
+                const li = document.createElement('li');
+                li.innerHTML = `${username} <div class="progress-container"><div class="progress-bar" id="progress-${username}"></div></div>`;
+                userList.appendChild(li);
+            });
+        }
+
+        function addActivity(message) {
+            const activityList = document.getElementById('activityList');
+            const li = document.createElement('li');
+            li.textContent = message;
+            activityList.prepend(li);
+            activityList.scrollTop = 0;
         }
 
         function ready() {
@@ -209,9 +257,21 @@
         function checkText() {
             const typedText = document.getElementById('typedText').value;
             document.getElementById('textToType').innerHTML = getFormattedText(requiredText, typedText);
+            const progress = calculateAccuracy(requiredText, typedText);
+            socket.send(JSON.stringify({ type: 'progress', username: username, progress: progress }));
             if (typedText === requiredText) {
                 socket.send(JSON.stringify({ type: 'finished', username: username }));
             }
+        }
+
+        function calculateAccuracy(reference, input) {
+            let correctChars = 0;
+            for (let i = 0; i < input.length; i++) {
+                if (input[i] === reference[i]) {
+                    correctChars++;
+                }
+            }
+            return Math.min((correctChars / reference.length) * 100, 100);
         }
 
         function getFormattedText(reference, input) {
@@ -228,6 +288,16 @@
                 }
             }
             return formattedText;
+        }
+
+        function updateProgress(users) {
+            users.forEach(user => {
+                const progressBar = document.getElementById(`progress-${user.username}`);
+                if (progressBar) {
+                    progressBar.style.width = `${user.progress}%`;
+                    progressBar.textContent = `${user.progress}%`;
+                }
+            });
         }
 
         function showResult(winner) {
@@ -252,6 +322,10 @@
             document.getElementById('typedText').value = '';
             document.getElementById('textToType').style.display = 'none';
             document.getElementById('typingArea').style.display = 'none';
+            document.querySelectorAll('.progress-bar').forEach(bar => {
+                bar.style.width = '0';
+                bar.textContent = '0%';
+            });
         }
 
         function newGame() {
