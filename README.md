@@ -28,6 +28,16 @@ Run => go run . or go run main.go</code>
 <code>python run.py
 python predict.py</code>
 ##
+
+## **Node.js Projects**
+- Keyboard game project
+
+## Run Guideline
+#### **MNIST** 
+<code>node server.js
+run index.html</code>
+##
+
 <div>
 <img src="https://raw.githubusercontent.com/bablubambal/All_logo_and_pictures/1ac69ce5fbc389725f16f989fa53c62d6e1b4883/social%20icons/php.svg" widht="45" height="45">
 <img src="https://raw.githubusercontent.com/bablubambal/All_logo_and_pictures/1ac69ce5fbc389725f16f989fa53c62d6e1b4883/social%20icons/python.svg" widht="45" height="45">
