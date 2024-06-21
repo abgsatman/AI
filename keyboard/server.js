@@ -88,7 +88,7 @@ wss.on('connection', (socket) => {
         const data = JSON.parse(message);
         if (data.type === 'join') {
             socket.username = data.username;
-            users.push(data.username);
+            users.push({ username: data.username, progress: 0 });
             broadcastUserList();
             broadcastActivity(`${data.username} sunucuya bağlandı`);
         } else if (data.type === 'ready') {
@@ -99,6 +99,11 @@ wss.on('connection', (socket) => {
             }
         } else if (data.type === 'raceStart') {
             broadcastRaceStart();
+        } else if (data.type === 'progress') {
+            users = users.map(user => 
+                user.username === data.username ? { ...user, progress: Math.floor(data.progress) } : user
+            );
+            broadcastProgress();
         } else if (data.type === 'finished') {
             broadcastWinner(data.username);
         } else if (data.type === 'newGame') {
@@ -108,7 +113,7 @@ wss.on('connection', (socket) => {
 
     socket.on('close', () => {
         if (socket.username) {
-            users = users.filter(user => user !== socket.username);
+            users = users.filter(user => user.username !== socket.username);
             broadcastUserList();
             broadcastActivity(`${socket.username} sunucudan ayrıldı`);
             if (readyUsers > 0) readyUsers--;
@@ -116,7 +121,7 @@ wss.on('connection', (socket) => {
     });
 
     function broadcastUserList() {
-        const userListMessage = JSON.stringify({ type: 'updateUsers', users: users });
+        const userListMessage = JSON.stringify({ type: 'updateUsers', users: users.map(user => user.username) });
         wss.clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(userListMessage);
@@ -151,6 +156,15 @@ wss.on('connection', (socket) => {
         });
     }
 
+    function broadcastProgress() {
+        const progressMessage = JSON.stringify({ type: 'progress', users: users });
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(progressMessage);
+            }
+        });
+    }
+
     function broadcastWinner(username) {
         const winnerMessage = JSON.stringify({ type: 'winner', username: username });
         wss.clients.forEach(client => {
@@ -162,6 +176,7 @@ wss.on('connection', (socket) => {
 
     function resetGame() {
         readyUsers = 0;
+        users = users.map(user => ({ ...user, progress: 0 }));
         broadcastActivity('Yeni oyun başlıyor...');
         const newGameMessage = JSON.stringify({ type: 'newGame' });
         wss.clients.forEach(client => {
@@ -169,6 +184,8 @@ wss.on('connection', (socket) => {
                 client.send(newGameMessage);
             }
         });
+        broadcastUserList();  // Kullanıcı listesini yeniden yayınla
+        broadcastProgress();  // Progress barları sıfırla
     }
 });
 
