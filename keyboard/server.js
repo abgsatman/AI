@@ -1,177 +1,284 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const WebSocket = require('ws');
-
-// HTTP sunucusu oluştur
-const server = http.createServer((req, res) => {
-    // index.html dosyasını sun
-    if (req.method === 'GET' && req.url === '/') {
-        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                res.end('Sunucu hatası');
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data);
-        });
-    } else {
-        res.writeHead(404);
-        res.end('Sayfa bulunamadı');
-    }
-});
-
-// WebSocket sunucusu oluştur ve HTTP sunucusuna bağla
-const wss = new WebSocket.Server({ server });
-
-let users = [];
-let readyUsers = 0;
-let texts = [
-    "Bu metni aynen yazmanız gerekiyor.",
-    "Bir başka karmaşık metin örneği.",
-    "Daha uzun ve zor bir metin parçası.",
-    "Rastgele cümleler içeren bir test metni.",
-    "Kodlamayı öğrenmek harika bir beceridir.",
-    "Yapay zeka ile ilgili çalışmalar son yıllarda hızla artmaktadır. Birçok alanda devrim niteliğinde gelişmelere imza atılmıştır.",
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    "In publishing and graphic design, Lorem ipsum is a placeholder text commonly used to demonstrate the visual form of a document.",
-    "Bu cümleleri hızlı ve doğru şekilde yazabilmek için bol bol pratik yapmalısınız. Hız ve doğruluk önemli.",
-    "Bilgisayar mühendisliği, yazılım geliştirme ve veri bilimi gibi alanlarda çalışmak isteyenler için algoritma bilgisi şarttır.",
-    "İnsanlar genellikle bilgisayarlarla ilgili problemlerini hızlıca çözmek isterler. Bu yüzden kullanıcı dostu yazılımlar önemlidir.",
-    "JavaScript, HTML ve CSS web geliştirme için temel teknolojilerdir.",
-    "Python, veri bilimi ve makine öğrenmesi için popüler bir programlama dilidir.",
-    "Algoritmalar ve veri yapıları, verimli yazılım geliştirme için hayati öneme sahiptir.",
-    "Bilgisayarlar, büyük miktarda veriyi hızlıca işleyebilme kapasitesine sahiptir.",
-    "Yapay zeka, sağlık, eğitim, ulaşım gibi birçok alanda devrim yaratmıştır.",
-    "Veri analizi, büyük veri kümelerinden anlamlı bilgiler elde etmek için kullanılır.",
-    "Bilgisayar ağları, dünya genelinde milyarlarca cihazı birbirine bağlar.",
-    "Siber güvenlik, dijital dünyada veri ve sistemlerin korunmasını sağlar.",
-    "Mobil uygulamalar, modern yaşamın vazgeçilmez bir parçası haline gelmiştir.",
-    "Blockchain teknolojisi, güvenli ve merkezi olmayan işlemler sağlar.",
-    "Oyun geliştirme, yaratıcı ve teknik becerilerin birleşimini gerektirir.",
-    "Yapay zeka modelleri, büyük veri kümeleri üzerinde eğitilerek öğrenir.",
-    "Büyük veri, karmaşık ve çok boyutlu veri kümelerinin işlenmesi için kullanılan bir terimdir.",
-    "Veri görselleştirme, verilerin grafiksel temsillerle daha anlaşılır hale getirilmesini sağlar.",
-    "Siber saldırılar, dijital sistemlere yönelik tehditlerin başında gelir.",
-    "Makine öğrenmesi, bilgisayarların deneyimden öğrenmesini sağlar.",
-    "Veritabanları, büyük miktarda verinin düzenli ve hızlı bir şekilde saklanmasını sağlar.",
-    "Bulut bilişim, internet üzerinden çeşitli hizmetlere erişim sağlar.",
-    "Bilgisayar grafikleri, görsel içeriklerin oluşturulması ve manipülasyonunu içerir.",
-    "Robotik, fiziksel makinelerin tasarımı ve kontrolünü kapsar.",
-    "Doğal dil işleme, bilgisayarların insan dilini anlamasını ve işlemesini sağlar.",
-    "Yapay zeka algoritmaları, belirli görevleri otomatikleştirmek için kullanılır.",
-    "Bilgisayarlar, karmaşık matematiksel hesaplamaları hızlıca yapabilir.",
-    "Yapay sinir ağları, biyolojik sinir ağlarını taklit eden hesaplama modelleridir.",
-    "Veri madenciliği, büyük veri kümelerinden gizli kalıpların keşfedilmesini sağlar.",
-    "Bilgisayar güvenliği, sistemleri kötü amaçlı saldırılardan korur.",
-    "Yapay zeka, günlük yaşamda birçok farklı alanda kullanılmaktadır.",
-    "Veri bilimi, verileri analiz ederek değerli bilgiler elde etmeyi amaçlar.",
-    "Yazılım mühendisliği, büyük ölçekli yazılım sistemlerinin tasarımı ve geliştirilmesini kapsar.",
-    "Bilgisayar oyunları, eğlence ve eğitim amaçlı kullanılabilir.",
-    "Veri analitiği, iş kararlarını desteklemek için verilerin incelenmesini içerir.",
-    "Sanal gerçeklik, kullanıcıların dijital ortamlarla etkileşime girmesini sağlar.",
-    "Bilgisayar donanımı, fiziksel bileşenlerin tasarımı ve üretimini içerir.",
-    "Veri entegrasyonu, farklı kaynaklardan gelen verilerin birleştirilmesini sağlar.",
-    "Yapay zeka etik kuralları, AI sistemlerinin sorumlu ve güvenli bir şekilde kullanılmasını sağlar.",
-    "Bilgisayarlar, bilgi işlem gücü sayesinde karmaşık problemleri çözebilir.",
-    "Veri gizliliği, kişisel bilgilerin korunmasını ve yetkisiz erişimlerin engellenmesini sağlar.",
-    "Bilgisayar mühendisleri, yenilikçi çözümler geliştirerek teknolojiyi ileriye taşır."
-];
-
-function getRandomText() {
-    return texts[Math.floor(Math.random() * texts.length)];
-}
-
-wss.on('connection', (socket) => {
-    socket.on('message', (message) => {
-        const data = JSON.parse(message);
-        if (data.type === 'join') {
-            socket.username = data.username;
-            users.push(data.username);
-            broadcastUserList();
-            broadcastActivity(`${data.username} sunucuya bağlandı`);
-        } else if (data.type === 'ready') {
-            readyUsers++;
-            broadcastActivity(`${socket.username} yarışmaya hazır`);
-            if (readyUsers === users.length) {
-                broadcastStartCountdown();
-            }
-        } else if (data.type === 'raceStart') {
-            broadcastRaceStart();
-        } else if (data.type === 'finished') {
-            broadcastWinner(data.username);
-        } else if (data.type === 'newGame') {
-            resetGame();
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yarışma</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-    });
-
-    socket.on('close', () => {
-        if (socket.username) {
-            users = users.filter(user => user !== socket.username);
-            broadcastUserList();
-            broadcastActivity(`${socket.username} sunucudan ayrıldı`);
-            if (readyUsers > 0) readyUsers--;
+        #leftPane, #rightPane {
+            flex: 1;
+            padding: 20px;
         }
-    });
+        #leftPane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 300px;
+        }
+        #rightPane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 600px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #userList, #activityList {
+            list-style-type: none;
+            padding: 0;
+            margin: 10px 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #userList li, #activityList li {
+            padding: 10px;
+            margin: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+        #timer {
+            font-size: 72px;
+            text-align: center;
+            margin: 20px 0;
+            color: #333;
+        }
+        #textToType {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            width: 100%;
+            max-width: 600px;
+            min-height: 60px;
+            display: none;
+        }
+        .correct {
+            color: green;
+        }
+        .incorrect {
+            color: red;
+        }
+        #typingArea {
+            margin: 20px 0;
+            width: 100%;
+            max-width: 600px;
+            display: none;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            display: none;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        .winner {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .loser {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #newGameButton {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        let socket;
+        let username = prompt("Kullanıcı adınızı girin:");
+        let readyUsers = 0;
+        let requiredText = "";
 
-    function broadcastUserList() {
-        const userListMessage = JSON.stringify({ type: 'updateUsers', users: users });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(userListMessage);
+        if (username.trim() === '') {
+            alert('Lütfen geçerli bir kullanıcı adı girin.');
+            window.location.reload();
+        }
+
+        window.onload = function () {
+            socket = new WebSocket('ws://' + window.location.host);
+
+            socket.onopen = function () {
+                console.log('Bağlantı kuruldu.');
+                socket.send(JSON.stringify({ type: 'join', username: username }));
+            };
+
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (data.type === 'updateUsers') {
+                    const userList = document.getElementById('userList');
+                    userList.innerHTML = '';
+                    data.users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.textContent = user;
+                        userList.appendChild(li);
+                    });
+                } else if (data.type === 'activity') {
+                    const activityList = document.getElementById('activityList');
+                    const li = document.createElement('li');
+                    li.textContent = data.message;
+                    activityList.appendChild(li);
+                } else if (data.type === 'startCountdown') {
+                    startCountdown();
+                } else if (data.type === 'raceStart') {
+                    startRace(data.text);
+                } else if (data.type === 'winner') {
+                    showResult(data.username);
+                } else if (data.type === 'newGame') {
+                    resetGame();
+                }
+            };
+
+            socket.onclose = function () {
+                console.log('Bağlantı kapandı.');
+            };
+        }
+
+        function ready() {
+            socket.send(JSON.stringify({ type: 'ready' }));
+        }
+
+        function startCountdown() {
+            document.getElementById('readyButton').style.display = 'none';
+            let countdown = 5;
+            const timerElement = document.getElementById('timer');
+            timerElement.style.display = 'block';
+            const interval = setInterval(() => {
+                timerElement.textContent = countdown;
+                countdown--;
+                if (countdown < 0) {
+                    clearInterval(interval);
+                    socket.send(JSON.stringify({ type: 'raceStart' }));
+                }
+            }, 1000);
+        }
+
+        function startRace(text) {
+            requiredText = text;
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('textToType').innerHTML = getFormattedText(requiredText, '');
+            document.getElementById('textToType').style.display = 'block';
+            document.getElementById('typingArea').style.display = 'block';
+        }
+
+        function checkText() {
+            const typedText = document.getElementById('typedText').value;
+            document.getElementById('textToType').innerHTML = getFormattedText(requiredText, typedText);
+            if (typedText === requiredText) {
+                socket.send(JSON.stringify({ type: 'finished', username: username }));
             }
-        });
-    }
+        }
 
-    function broadcastActivity(message) {
-        const activityMessage = JSON.stringify({ type: 'activity', message: message });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(activityMessage);
+        function getFormattedText(reference, input) {
+            let formattedText = '';
+            for (let i = 0; i < reference.length; i++) {
+                if (i < input.length) {
+                    if (reference[i] === input[i]) {
+                        formattedText += `<span class="correct">${reference[i]}</span>`;
+                    } else {
+                        formattedText += `<span class="incorrect">${reference[i]}</span>`;
+                    }
+                } else {
+                    formattedText += `<span>${reference[i]}</span>`;
+                }
             }
-        });
-    }
+            return formattedText;
+        }
 
-    function broadcastStartCountdown() {
-        const startCountdownMessage = JSON.stringify({ type: 'startCountdown' });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(startCountdownMessage);
+        function showResult(winner) {
+            const resultElement = document.getElementById('result');
+            if (winner === username) {
+                resultElement.className = 'winner';
+                resultElement.textContent = `Tebrikler ${winner}, siz kazandınız!`;
+            } else {
+                resultElement.className = 'loser';
+                resultElement.textContent = `Üzgünüm, ${winner} kazandı.`;
             }
-        });
-    }
+            resultElement.style.display = 'block';
+            document.getElementById('textToType').style.display = 'none';
+            document.getElementById('typingArea').style.display = 'none';
+            document.getElementById('newGameButton').style.display = 'block';
+        }
 
-    function broadcastRaceStart() {
-        const raceStartMessage = JSON.stringify({ type: 'raceStart', text: getRandomText() });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(raceStartMessage);
-            }
-        });
-    }
+        function resetGame() {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('newGameButton').style.display = 'none';
+            document.getElementById('readyButton').style.display = 'block';
+            document.getElementById('typedText').value = '';
+            document.getElementById('textToType').style.display = 'none';
+            document.getElementById('typingArea').style.display = 'none';
+        }
 
-    function broadcastWinner(username) {
-        const winnerMessage = JSON.stringify({ type: 'winner', username: username });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(winnerMessage);
-            }
-        });
-    }
+        function newGame() {
+            socket.send(JSON.stringify({ type: 'newGame' }));
+        }
+    </script>
+</head>
+<body>
+    <div id="leftPane">
+        <h2>Bağlı Kullanıcılar</h2>
+        <ul id="userList"></ul>
 
-    function resetGame() {
-        readyUsers = 0;
-        broadcastActivity('Yeni oyun başlıyor...');
-        const newGameMessage = JSON.stringify({ type: 'newGame' });
-        wss.clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(newGameMessage);
-            }
-        });
-    }
-});
+        <h2>Hareket Listesi</h2>
+        <ul id="activityList"></ul>
+    </div>
 
-server.listen(8080, () => {
-    console.log('Sunucu çalışıyor: http://localhost:8080');
-});
+    <div id="rightPane">
+        <h1>Yarışma</h1>
+        <button id="readyButton" onclick="ready()">Hazırım</button>
+        <div id="timer"></div>
+
+        <div id="textToType"></div>
+        <div id="typingArea">
+            <textarea id="typedText" rows="5" cols="50" oninput="checkText()"></textarea>
+        </div>
+        <div id="result"></div>
+        <button id="newGameButton" onclick="newGame()">Yeni Oyun</button>
+    </div>
+</body>
+</html>
