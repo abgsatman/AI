@@ -33,7 +33,7 @@ python predict.py</code>
 - Keyboard game project
 
 ## Run Guideline
-#### **MNIST** 
+#### **Keyboard** 
 <code>node server.js
 run index.html</code>
 ##
